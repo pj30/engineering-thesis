@@ -60,6 +60,7 @@ def advect(b, d, d0, h_vel, v_vel, d_vel, dt):
         for j in range(1, M + 1):
             for k in range(1, L + 1):
 
+                # estimating start point of particle using Forward Euler
                 x = i - dx * h_vel[IX(i, j, k)]
                 y = j - dy * v_vel[IX(i, j, k)]
                 z = k - dz * d_vel[IX(i, j, k)]
@@ -113,7 +114,7 @@ def vel_step(h_vel, v_vel, d_vel, h_vel_prev, v_vel_prev, d_vel_prev, visc, dt):
     d_vel, d_vel_prev = d_vel_prev, d_vel
     d_vel = diffuse(3, d_vel, d_vel_prev, visc, dt)
 
-    h_vel, v_vel, d_vel, h_vel_prev, v_vel_prev, d_vel_prev = project(h_vel, v_vel, d_vel)
+    h_vel, v_vel, d_vel = project(h_vel, v_vel, d_vel)
     # swap
     h_vel, h_vel_prev = h_vel_prev, h_vel
     v_vel, v_vel_prev = v_vel_prev, v_vel
@@ -122,24 +123,24 @@ def vel_step(h_vel, v_vel, d_vel, h_vel_prev, v_vel_prev, d_vel_prev, visc, dt):
     h_vel = advect(1, h_vel, h_vel_prev, h_vel_prev, v_vel_prev, d_vel_prev, dt)
     v_vel = advect(2, v_vel, v_vel_prev, h_vel_prev, v_vel_prev, d_vel_prev, dt)
     d_vel = advect(3, d_vel, d_vel_prev, h_vel_prev, v_vel_prev, d_vel_prev, dt)
-    h_vel, v_vel, d_vel, h_vel_prev, v_vel_prev, d_vel_prev = project(h_vel, v_vel, d_vel)
+    h_vel, v_vel, d_vel = project(h_vel, v_vel, d_vel)
     return h_vel, v_vel, d_vel
 
 def project(h_vel, v_vel, d_vel):
     h = 1. / N
-    div_v = np.zeros((N2, M2, L2))
-    div_d = np.zeros((N2, M2, L2))
+    div = np.zeros((N2, M2, L2))
+    #div_d = np.zeros((N2, M2, L2))
     p = np.zeros((N2, M2, L2))
-    div_v[1 : N, 1 : M, 1 : L] = -.5 * h * (h_vel[2 : -1, 1 : M, 1 : L] - h_vel[0 : -3, 1 : M, 1 : L]
-                                            + v_vel[1 : N, 1 : M, 2 : -1] - v_vel[1 : N, 1 : M, 0 : -3])
-
-    div_d[1 : N, 1 : M, 1 : L] = -.5 * h * (h_vel[2 : -1, 1 : M, 1 : L] - h_vel[0 : -3, 1 : M, 1 : L]
+    div[1 : N, 1 : M, 1 : L] = -.5 * h * (h_vel[2 : -1, 1 : M, 1 : L] - h_vel[0 : -3, 1 : M, 1 : L]
+                                            + v_vel[1 : N, 1 : M, 2 : -1] - v_vel[1 : N, 1 : M, 0 : -3]
                                             + d_vel[1 : N, 1 : M, 2 : -1] - d_vel[1 : N, 1 : M, 0 : -3])
 
-    div_v = set_bnd(0, div_v)
-    div_d = set_bnd(0, div_d)
+    #div_d[1 : N, 1 : M, 1 : L] = -.5 * h * (h_vel[2 : -1, 1 : M, 1 : L] - h_vel[0 : -3, 1 : M, 1 : L]
+                                        #    + d_vel[1 : N, 1 : M, 2 : -1] - d_vel[1 : N, 1 : M, 0 : -3])
+
+    div = set_bnd(0, div_v)
+    #div_d = set_bnd(0, div_d)
     p = set_bnd(0, p)
-    div = (div_v + div_d) / 2
     for l in range(10):
         p[1 : N, 1 : M, 1 : L] = (div[1 : N, 1 : M, 1 : L] + p[2 : N + 1, 1 : M, 1 : L] - p[0 : N - 1, 1 : M, 1 : L]
                                                             + p[1 : N, 2 : M + 1, 1 : L] - p[1 : N, 0 : M - 1, 1 : L]
@@ -152,7 +153,7 @@ def project(h_vel, v_vel, d_vel):
     h_vel = set_bnd(1, h_vel)
     v_vel = set_bnd(2, v_vel)
     d_vel = set_bnd(3, d_vel)
-    return h_vel, v_vel, d_vel, p, div_v, div_d
+    return h_vel, v_vel, d_vel, p
 
 N = 10
 M = 10
